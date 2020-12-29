@@ -21,19 +21,18 @@
 
 <script class="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"samzerf.github.io","root":"/","images":"/images","scheme":"Mist","version":"8.1.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+    var CONFIG = {"hostname":"samzerf.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.1.0","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
   </script>
 <meta name="description" content="koa是一个轻量级的web应用框架。其实现非常精简和优雅，核心代码仅有区区一百多行，非常值得我们去细细品味和学习。 在开始分析源码之前先上demo～ DEMO 11234567891011121314151617181920212223const Koa &#x3D; require(&amp;#x27;..&#x2F;lib&#x2F;application&amp;#x27;);const app &#x3D; new Koa();app.use(">
 <meta property="og:type" content="article">
 <meta property="og:title" content="koa2核心源码分析">
 <meta property="og:url" content="https://samzerf.github.io/2020/12/25/koa2%E6%A0%B8%E5%BF%83%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
-<meta property="og:site_name" content="FE!">
+<meta property="og:site_name" content="廿三">
 <meta property="og:description" content="koa是一个轻量级的web应用框架。其实现非常精简和优雅，核心代码仅有区区一百多行，非常值得我们去细细品味和学习。 在开始分析源码之前先上demo～ DEMO 11234567891011121314151617181920212223const Koa &#x3D; require(&amp;#x27;..&#x2F;lib&#x2F;application&amp;#x27;);const app &#x3D; new Koa();app.use(">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://user-gold-cdn.xitu.io/2018/10/11/166636886e81f287?w=306&h=226&f=png&s=20686">
 <meta property="article:published_time" content="2020-12-25T02:48:05.000Z">
 <meta property="article:modified_time" content="2020-12-25T02:49:31.343Z">
-<meta property="article:author" content="frank">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://user-gold-cdn.xitu.io/2018/10/11/166636886e81f287?w=306&h=226&f=png&s=20686">
 
@@ -50,7 +49,7 @@
     lang   : 'en'
   };
 </script>
-<title>koa2核心源码分析 | FE!</title>
+<title>koa2核心源码分析 | 廿三</title>
   
 
 
@@ -107,10 +106,9 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <h1 class="site-title">FE!</h1>
+      <h1 class="site-title">廿三</h1>
       <i class="logo-line"></i>
     </a>
-      <p class="site-subtitle" itemprop="description">frankie✍️的地方</p>
   </div>
 
   <div class="site-nav-right">
@@ -155,8 +153,10 @@
 
         <section class="site-overview-wrap sidebar-panel">
           <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-  <p class="site-author-name" itemprop="name">frank</p>
-  <div class="site-description" itemprop="description">Just recording something.</div>
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description">frankie✍️の地方.</div>
 </div>
 <div class="site-state-wrap site-overview-item animated">
   <nav class="site-state">
@@ -168,6 +168,14 @@
       </div>
   </nav>
 </div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/samzerf" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;samzerf" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:sanjayf@foxmail.com" title="E-Mail → mailto:sanjayf@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
 
 
 
@@ -205,13 +213,13 @@
     <link itemprop="mainEntityOfPage" href="https://samzerf.github.io/2020/12/25/koa2%E6%A0%B8%E5%BF%83%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="frank">
-      <meta itemprop="description" content="Just recording something.">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="frankie✍️の地方.">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="FE!">
+      <meta itemprop="name" content="廿三">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -355,9 +363,9 @@
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">frank</span>
+  <span class="author" itemprop="copyrightHolder"></span>
 </div>
-  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
   </div>
 
     </div>
