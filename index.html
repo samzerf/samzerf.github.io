@@ -157,7 +157,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-count">2</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -195,6 +195,83 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://samzerf.github.io/2021/03/11/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%8A%A8%E4%B8%8A%E4%BC%A0%E8%B5%84%E6%BA%90%E5%88%B0CDN%E7%9A%84webpack%E6%8F%92%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="frankie✍️の地方.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="廿三">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2021/03/11/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%8A%A8%E4%B8%8A%E4%BC%A0%E8%B5%84%E6%BA%90%E5%88%B0CDN%E7%9A%84webpack%E6%8F%92%E4%BB%B6/" class="post-title-link" itemprop="url">实现一个自动上传资源到CDN的Webpack插件</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-03-11 11:07:16 / Modified: 15:10:52" itemprop="dateCreated datePublished" datetime="2021-03-11T11:07:16+08:00">2021-03-11</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <blockquote>
+<p>导语：日常开发中我们通常会把前端的静态资源上传到CDN，以提高访问速度。本文将会带领大家开发一个Webpack插件，实现把资源打包成zip，然后上传到COS自动解压的功能。</p>
+</blockquote>
+<h4 id="需求分析"><a href="#需求分析" class="headerlink" title="需求分析"></a>需求分析</h4><p>在开发一个功能之前，我们先来拆解一下需求。经过分析，其实需要实现的逻辑就是以下几点：</p>
+<ul>
+<li>在<code>Webpack</code>构建完成之前，遍历静态资源，生成zip</li>
+<li>把zip上传到<code>COS（CDN）</code></li>
+<li>上传到<code>COS</code>后自动解压<br>因为我们上传的是一个<code>.zip</code>的文件，所以在上传完成之后，需要对文件进行解压。这里会以<code>COS触发</code>的方式触发一个云函数，用以处理zip文件的解压。</li>
+</ul>
+<h4 id="Webpack插件的基本结构"><a href="#Webpack插件的基本结构" class="headerlink" title="Webpack插件的基本结构"></a>Webpack插件的基本结构</h4><p>一个<code>Webpack</code>插件其实就是一个构造函数，原型上定义了一个<code>apply</code>方法，这个方法会在Webpack启动时被调用。所以可以在<code>apply</code>方法中设置钩子函数，在特定的时机执行指定的逻辑。<br>下面就是一个<code>Webpack</code>插件的基本结构：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UploadToCDN</span> </span>&#123;</span><br><span class="line">  apply (compiler) &#123;</span><br><span class="line">    compiler.hooks.somehook.tap(<span class="string">&#x27;plugin-name&#x27;</span>, <span class="function">(<span class="params">compilation</span>) =&gt;</span> &#123;</span><br><span class="line">      <span class="comment">// to do something</span></span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="compiler和compilation"><a href="#compiler和compilation" class="headerlink" title="compiler和compilation"></a><code>compiler</code>和<code>compilation</code></h4><p>如上面的代码所示，在开发<code>Webpack</code>插件时，必然会使用到<code>compiler</code>和<code>compilation</code>这两个对象。<br><code>compiler</code>包含了我们此次构建所有的配置信息，同时也提供了一些生命周期钩子，让我们可以在特定的时机执行相应的逻辑。<br><code>compilation</code>可以理解为此次运行打包的上下文，所有打包过程中产生的结果，都会放到这个对象中。它包含了当前的模块资源、编译生成资源、变化的文件、以及被跟踪依赖的状态信息等。当<code>Webpack</code>以开发模式运行时，每当检测到一个变化，一次新的<code>compilation</code>将被创建。与<code>compiler</code>一样，compilation对象也提供了很多事件回调供插件做扩展。<br>在<code>UploadToCDN</code>插件的开发中，我们主要用到了<code>compiler</code>的两个钩子<code>emit</code>和<code>afterEmit</code>。<br><code>emit</code>会在输出<code>asset</code>到<code>output</code>目录之前执行，所以我们可以在这个钩子函数上对生成的静态资源进行打包压缩。而<code>afterEmit</code>会在输出<code>asset</code>到<code>output</code>目录之后执行，此时zip文件已经生成，可以进行上传操作。</p>
+<h4 id="插件核心代码实现"><a href="#插件核心代码实现" class="headerlink" title="插件核心代码实现"></a>插件核心代码实现</h4><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">UploadToCDN</span> </span>&#123;</span><br><span class="line">   <span class="keyword">constructor</span>(options) &#123;</span><br><span class="line">     <span class="built_in">this</span>.options = options</span><br><span class="line">   &#125;</span><br><span class="line">   apply(compiler) &#123;</span><br><span class="line">     compiler.hooks.emit.tapAsync(PLUGIN_NAME, <span class="function">(<span class="params">compilation, callback</span>) =&gt;</span> &#123;</span><br><span class="line">       <span class="keyword">const</span> folder = zip.folder(<span class="built_in">this</span>.options.filename)</span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">let</span> filename <span class="keyword">in</span> compilation.assets) &#123;</span><br><span class="line">         <span class="keyword">const</span> source = compilation.assets[filename].source()</span><br><span class="line">         folder.file(filename, source)</span><br><span class="line">       &#125;</span><br><span class="line">       zip.generateAsync(&#123; <span class="attr">type</span>: <span class="string">&#x27;nodebuffer&#x27;</span> &#125;).then(<span class="function">(<span class="params">content</span>) =&gt;</span> &#123;</span><br><span class="line">         <span class="built_in">this</span>.outputPath = path.join(compilation.options.output.path, <span class="string">`<span class="subst">$&#123;<span class="built_in">this</span>.options.filename&#125;</span>.zip`</span>)</span><br><span class="line">         <span class="keyword">const</span> outputRelativePath = path.relative(compilation.options.output.path, <span class="built_in">this</span>.outputPath)</span><br><span class="line">         compilation.assets[outputRelativePath] = <span class="keyword">new</span> RawSource(content)</span><br><span class="line">         callback()</span><br><span class="line">       &#125;)</span><br><span class="line">     &#125;)</span><br><span class="line"></span><br><span class="line">     compiler.hooks.afterEmit.tapAsync(PLUGIN_NAME, <span class="function">(<span class="params">compilation, callback</span>) =&gt;</span> &#123;</span><br><span class="line">       cos.putObject(&#123;</span><br><span class="line">         Bucket: <span class="string">&#x27;your bucket&#x27;</span>, </span><br><span class="line">         Region: <span class="string">&#x27;region&#x27;</span>, </span><br><span class="line">         Key: <span class="string">`<span class="subst">$&#123;<span class="built_in">this</span>.options.filename&#125;</span>.zip`</span>,</span><br><span class="line">         StorageClass: <span class="string">&#x27;STANDARD&#x27;</span>,</span><br><span class="line">         Body: fs.createReadStream(<span class="built_in">this</span>.outputPath),</span><br><span class="line">         onProgress: <span class="function"><span class="params">progressData</span> =&gt;</span> &#123;</span><br><span class="line">           <span class="built_in">console</span>.log(<span class="built_in">JSON</span>.stringify(progressData))</span><br><span class="line">         &#125;</span><br><span class="line">       &#125;, <span class="function">(<span class="params">err, data</span>) =&gt;</span> &#123;</span><br><span class="line">         <span class="keyword">if</span> (err) &#123;</span><br><span class="line">           <span class="built_in">console</span>.err(err)</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="built_in">console</span>.log(<span class="string">&#x27;Upload to cdn success...!&#x27;</span>, data)</span><br><span class="line">         callback()</span><br><span class="line">       &#125;)</span><br><span class="line">     &#125;)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -352,7 +429,7 @@
 
 <div class="copyright">
   &copy; 
-  <span itemprop="copyrightYear">2020</span>
+  <span itemprop="copyrightYear">2021</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
