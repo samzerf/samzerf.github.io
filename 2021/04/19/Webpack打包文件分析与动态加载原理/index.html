@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"samzerf.github.io","root":"/","images":"/images","scheme":"Muse","version":"8.1.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}};
+  </script>
+<meta name="description" content="一、构建结果分析先从一个简单的模块开始。 假设我们有一个hello模块如下， 1234function hello() &amp;#123;  console.log(&amp;#x27;hello world&amp;#x27;)&amp;#125;hello() 使用webpack进行构建后，得到的结果如下，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Webpack打包文件分析与动态加载原理">
+<meta property="og:url" content="https://samzerf.github.io/2021/04/19/Webpack%E6%89%93%E5%8C%85%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90%E4%B8%8E%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="廿三">
+<meta property="og:description" content="一、构建结果分析先从一个简单的模块开始。 假设我们有一个hello模块如下， 1234function hello() &amp;#123;  console.log(&amp;#x27;hello world&amp;#x27;)&amp;#125;hello() 使用webpack进行构建后，得到的结果如下，">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-04-19T03:09:14.000Z">
+<meta property="article:modified_time" content="2021-04-19T03:12:42.450Z">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://samzerf.github.io/2021/04/19/Webpack%E6%89%93%E5%8C%85%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90%E4%B8%8E%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<title>Webpack打包文件分析与动态加载原理 | 廿三</title>
+  
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">廿三</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <section class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%9E%84%E5%BB%BA%E7%BB%93%E6%9E%9C%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">一、构建结果分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81-%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD"><span class="nav-number">2.</span> <span class="nav-text">二、 动态加载</span></a></li></ol></div>
+        </section>
+        <!--/noindex-->
+
+        <section class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description">frankie✍️の地方.</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/samzerf" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;samzerf" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:sanjayf@foxmail.com" title="E-Mail → mailto:sanjayf@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+        </section>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://samzerf.github.io/2021/04/19/Webpack%E6%89%93%E5%8C%85%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90%E4%B8%8E%E5%8A%A8%E6%80%81%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="frankie✍️の地方.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="廿三">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Webpack打包文件分析与动态加载原理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-04-19 11:09:14 / Modified: 11:12:42" itemprop="dateCreated datePublished" datetime="2021-04-19T11:09:14+08:00">2021-04-19</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h3 id="一、构建结果分析"><a href="#一、构建结果分析" class="headerlink" title="一、构建结果分析"></a>一、构建结果分析</h3><p>先从一个简单的模块开始。</p>
+<p>假设我们有一个<code>hello</code>模块如下，</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">&#x27;hello world&#x27;</span>)</span><br><span class="line">&#125;</span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+<p>使用webpack进行构建后，得到的结果如下，</p>
+<a id="more"></a>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span>(<span class="params">modules</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> installedModules = &#123;&#125;;  <span class="comment">//  模块缓存</span></span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">__webpack_require__</span>(<span class="params">moduleId</span>) </span>&#123;...&#125;</span><br><span class="line">    __webpack_require__.m = modules;</span><br><span class="line">    __webpack_require__.c = installedModules;</span><br><span class="line">    <span class="comment">// define getter function for harmony exports</span></span><br><span class="line">    __webpack_require__.d = <span class="function"><span class="keyword">function</span>(<span class="params">exports, name, getter</span>) </span>&#123;...&#125;;</span><br><span class="line">    <span class="comment">// define __esModule on exports</span></span><br><span class="line">    __webpack_require__.r = <span class="function"><span class="keyword">function</span>(<span class="params">exports</span>) </span>&#123;...&#125;;</span><br><span class="line">    __webpack_require__.t = <span class="function"><span class="keyword">function</span>(<span class="params">value, mode</span>) </span>&#123;...&#125;;</span><br><span class="line">    <span class="comment">// getDefaultExport function for compatibility with non-harmony modules</span></span><br><span class="line">    __webpack_require__.n = <span class="function"><span class="keyword">function</span>(<span class="params">module</span>) </span>&#123;...&#125;;</span><br><span class="line">    <span class="comment">// Object.prototype.hasOwnProperty.call</span></span><br><span class="line">    __webpack_require__.o = <span class="function"><span class="keyword">function</span>(<span class="params">object, property</span>) </span>&#123; <span class="keyword">return</span> <span class="built_in">Object</span>.prototype.hasOwnProperty.call(object, property); &#125;;</span><br><span class="line">    <span class="comment">// __webpack_public_path__</span></span><br><span class="line">    __webpack_require__.p = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="comment">// Load entry module and return exports</span></span><br><span class="line">    <span class="keyword">return</span> __webpack_require__(__webpack_require__.s = <span class="number">0</span>);</span><br><span class="line">&#125;)</span><br><span class="line">([</span><br><span class="line"><span class="comment">/* 0 */</span></span><br><span class="line">(<span class="function"><span class="keyword">function</span>(<span class="params">module, exports</span>) </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">         <span class="built_in">console</span>.log(<span class="string">&#x27;hello world&#x27;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    hello()</span><br><span class="line">&#125;)]);</span><br></pre></td></tr></table></figure>
+<p>我们的代码经过webpack构建后，生成的是一个IIFE。该自执行函数先定义了一系列的方法，然后在最后执行了</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__webpack_require__(__webpack_require__.s = <span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+<p>下面我们来看看<code>__webpack_require__</code>到底做了什么。该函数的定义如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 模块缓存</span></span><br><span class="line"><span class="keyword">var</span> installedModules = &#123;&#125;;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">__webpack_require__</span>(<span class="params">moduleId</span>) </span>&#123;</span><br><span class="line">  <span class="comment">// 检查当前require的模块id是否在cache中存在，如果存在，则直接返回对应模块的exports</span></span><br><span class="line">  <span class="keyword">if</span> (installedModules[moduleId]) &#123;</span><br><span class="line">    <span class="keyword">return</span> installedModules[moduleId].exports;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 创建一个模块，</span></span><br><span class="line">  <span class="keyword">var</span> <span class="built_in">module</span> = installedModules[moduleId] = &#123;</span><br><span class="line">    i: moduleId,</span><br><span class="line">    l: <span class="literal">false</span>,</span><br><span class="line">    <span class="built_in">exports</span>: &#123;&#125;</span><br><span class="line">  &#125;;</span><br><span class="line">  <span class="comment">// 执行模块方法</span></span><br><span class="line">  modules[moduleId].call(<span class="built_in">module</span>.exports, <span class="built_in">module</span>, <span class="built_in">module</span>.exports, __webpack_require__);</span><br><span class="line">  <span class="comment">// 标记当前模块已经被加载过</span></span><br><span class="line">  <span class="built_in">module</span>.l = <span class="literal">true</span>;</span><br><span class="line">  <span class="comment">// 返回模块的exports</span></span><br><span class="line">  <span class="keyword">return</span> <span class="built_in">module</span>.exports;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过分析上面的代码，我们可以知道，<code>__webpack_require__</code>的作用其实就是定义了一个<code>module</code>，同时将这个<code>module</code>和<code>__webpack_require__</code>本身作为参数传给指定的函数并执行。这样在函数内部给<code>module</code>或<code>module.exports</code>赋值时，就能同时修改<code>installedModules</code>里对应的模块。而且在执行函数内部如果使用<code>__webpack_require__</code>方法，也能获取到<code>modules</code>中相应的模块。<code>__webpack_require__(0)</code>表示执行第一个模块，也就是我们的<code>hello</code>模块。<code>hello</code>的代码比较简单，只是简单的执行一下函数。下面我们来看一个稍微复杂一点的🌰。</p>
+<p>我们把代码修改一下，定义一个<code>log</code>模块，然后在<code>hello</code>中使用它。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// log.js</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="function"><span class="keyword">function</span> <span class="title">log</span>(<span class="params">str</span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(str);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// index.js</span></span><br><span class="line"><span class="keyword">import</span> log <span class="keyword">from</span> <span class="string">&#x27;./log&#x27;</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  log(<span class="string">&#x27;hello world&#x27;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">hello()</span><br></pre></td></tr></table></figure>
+<p>使用webpack重新构建，得到的<code>bundle</code>如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span> (<span class="params">modules</span>) </span>&#123; <span class="comment">// webpackBootstrap</span></span><br><span class="line">  <span class="comment">// 省略了一堆代码</span></span><br><span class="line">  <span class="keyword">return</span> __webpack_require__(__webpack_require__.s = <span class="number">0</span>);</span><br><span class="line">&#125;)</span><br><span class="line">  ([</span><br><span class="line">    <span class="comment">/* 0 */</span></span><br><span class="line">    (<span class="function"><span class="keyword">function</span> (<span class="params">module, __webpack_exports__, __webpack_require__</span>) </span>&#123;</span><br><span class="line"><span class="meta">      &quot;use strict&quot;</span>;</span><br><span class="line">      __webpack_require__.r(__webpack_exports__);</span><br><span class="line"><span class="comment">/* harmony import */</span> <span class="keyword">var</span> _log__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(<span class="number">1</span>);</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">        <span class="built_in">Object</span>(_log__WEBPACK_IMPORTED_MODULE_0__[<span class="string">&quot;default&quot;</span>])(<span class="string">&#x27;hello world&#x27;</span>)</span><br><span class="line">      &#125;</span><br><span class="line">      hello()</span><br><span class="line">    &#125;),</span><br><span class="line">    <span class="comment">/* 1 */</span></span><br><span class="line">    (<span class="function"><span class="keyword">function</span> (<span class="params">module, __webpack_exports__, __webpack_require__</span>) </span>&#123;</span><br><span class="line"><span class="meta">      &quot;use strict&quot;</span>;</span><br><span class="line">      __webpack_require__.r(__webpack_exports__);</span><br><span class="line"><span class="comment">/* harmony export (binding) */</span> __webpack_require__.d(__webpack_exports__, <span class="string">&quot;default&quot;</span>, <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123; <span class="keyword">return</span> log; &#125;);</span><br><span class="line">      <span class="function"><span class="keyword">function</span> <span class="title">log</span>(<span class="params">str</span>) </span>&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(str);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">  ]);</span><br></pre></td></tr></table></figure>
+<p>通过分析发现，相比第一次构建的代码，<code>modules</code>中多了一个模块，而这个模块正是我们后面添加的<code>log</code>模块。而且<code>hello</code>模块编译出来的代码也有了一些变化：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> (<span class="params">module, __webpack_exports__, __webpack_require__</span>) </span>&#123;</span><br><span class="line"><span class="meta">  &quot;use strict&quot;</span>;</span><br><span class="line">  __webpack_require__.r(__webpack_exports__);</span><br><span class="line"><span class="comment">/* harmony import */</span> <span class="keyword">var</span> _log__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(<span class="number">1</span>);</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">Object</span>(_log__WEBPACK_IMPORTED_MODULE_0__[<span class="string">&quot;default&quot;</span>])(<span class="string">&#x27;hello world&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  hello()</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>这里我们看到多了一个<code>__webpack_require__.r</code>的方法，这个方法是初始化的时候定义的，它的功能其实很简单，就是标记一下当前的模块为<code>esModule</code>，我们分析模块执行时，可以忽略这些不会对流程造成影响的逻辑。<code>hello</code>模块中，通过<code>__webpack_require__(1)</code>加载下一个模块的<code>exports</code>，并将其缓存到变量<code>_log__WEBPACK_IMPORTED_MODULE_0__</code>上，然后在<code>hello</code>方法中传递参数给<code>log__WEBPACK_IMPORTED_MODULE_0__[&quot;default&quot;]</code>并执行。</p>
+<p>接下来我们再看一下log模块的实现：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 1 */</span></span><br><span class="line">(<span class="function"><span class="keyword">function</span> (<span class="params">module, __webpack_exports__, __webpack_require__</span>) </span>&#123;</span><br><span class="line"><span class="meta">  &quot;use strict&quot;</span>;</span><br><span class="line">  __webpack_require__.r(__webpack_exports__);</span><br><span class="line">  <span class="comment">/* harmony export (binding) */</span> __webpack_require__.d(__webpack_exports__, <span class="string">&quot;default&quot;</span>, <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123; <span class="keyword">return</span> log; &#125;);</span><br><span class="line">  <span class="function"><span class="keyword">function</span> <span class="title">log</span>(<span class="params">str</span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(str);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>log</code>模块中使用了一个<code>__webpack_require__.d</code>方法，该方法的定义如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">__webpack_require__.d = <span class="function"><span class="keyword">function</span>(<span class="params">exports, name, getter</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span>(!__webpack_require__.o(<span class="built_in">exports</span>, name)) &#123;</span><br><span class="line">    <span class="built_in">Object</span>.defineProperty(<span class="built_in">exports</span>, name, &#123; <span class="attr">enumerable</span>: <span class="literal">true</span>, <span class="attr">get</span>: getter &#125;);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line">__webpack_require__.o = <span class="function"><span class="keyword">function</span>(<span class="params">object, property</span>) </span>&#123; <span class="keyword">return</span> <span class="built_in">Object</span>.prototype.hasOwnProperty.call(object, property); &#125;;</span><br></pre></td></tr></table></figure>
+<p>不难发现，这个<code>__webpack_require__.d</code>方法的作用就是：检查指定对象上是否具有某个属性，如无，就为这个对象的指定属性绑定一个<code>getter</code>。所以，当执行下面的代码时，其实就是在<code>module.exports</code>添加了一个<code>default</code>的方法，执行该方法会返回<code>log</code>函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__webpack_require__.d(__webpack_exports__, <span class="string">&quot;default&quot;</span>, <span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123; <span class="keyword">return</span> log; &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>因此，在<code>hello</code>模块中，就能通过<code>__webpack_require__(1)</code>获取<code>log</code>模块的<code>exports</code>。通过<code>__webpack_require__(1)[&quot;default&quot;])()</code>就能调用<code>log</code>方法。</p>
+<p>综上所述，我们可以了解到，webpack打包出来的IIFE，其实核心就只有两个，一个是定义的内置方法，另一个是依赖的<code>modules</code>数组，模块之间通过<code>__webpack_require__</code>引用。我们写的模块代码，会作为依赖传递给<code>webpack</code>定义的函数，同时，第一个模块就是入口文件。</p>
+<h3 id="二、-动态加载"><a href="#二、-动态加载" class="headerlink" title="二、 动态加载"></a>二、 动态加载</h3><p>当我们在编写大型单页<code>vue</code>应用时，一般会用到路由懒加载（当访问到特定路由时，才会去加载相应的模块）。其实这里主要是利用了<strong>动态 import</strong>这个特性。把上面的例子改一下，看看<code>webpack</code>是如何处理<strong>动态 import</strong>的。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// index.js</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">import</span>(<span class="string">&#x27;./dynamic.js&#x27;</span>).then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(res))</span><br><span class="line">&#125;</span><br><span class="line">hello()</span><br><span class="line"></span><br><span class="line"><span class="comment">// dynamic.js</span></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> <span class="function"><span class="keyword">function</span> <span class="title">log</span>(<span class="params">str</span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(str);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>经过<code>webpack</code>构建后，我们发现，除了<code>app.bundle.js</code>以外，还多了一个<code>1.bundle.js</code>，这就是我们要动态导入的模块。另外，<code>app.bundle.js</code>中还多了几个先前没出现过的方法。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span> (<span class="params">modules</span>) </span>&#123; <span class="comment">// webpackBootstrap</span></span><br><span class="line">   <span class="comment">// 省略部分代码</span></span><br><span class="line"><span class="comment">// 处理jsonp</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">webpackJsonpCallback</span>(<span class="params">data</span>) </span>&#123;  <span class="comment">//...&#125;; </span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 构造jsonp的请求地址</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">jsonpScriptSrc</span>(<span class="params">chunkId</span>)  </span>&#123;<span class="comment">// ...&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 动态加载方法，返回promise，在promise.then中可以使用__webpack_require__加载动态模块</span></span><br><span class="line">webpack_require__.e = <span class="function"><span class="keyword">function</span> <span class="title">requireEnsure</span>(<span class="params">chunkId</span>) </span>&#123;   <span class="comment">// ...&#125;;</span></span><br><span class="line"><span class="keyword">var</span> jsonpArray = <span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] = <span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] || [];</span><br><span class="line"><span class="keyword">var</span> oldJsonpFunction = jsonpArray.push.bind(jsonpArray);</span><br><span class="line">jsonpArray.push = webpackJsonpCallback;</span><br><span class="line">jsonpArray = jsonpArray.slice();</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; jsonpArray.length; i++) webpackJsonpCallback(jsonpArray[i]);</span><br><span class="line"><span class="keyword">var</span> parentJsonpFunction = oldJsonpFunction;</span><br><span class="line"><span class="keyword">return</span> __webpack_require__(__webpack_require__.s = <span class="number">0</span>);</span><br><span class="line">&#125;)([<span class="comment">/* 0 */</span></span><br><span class="line">       (<span class="function"><span class="keyword">function</span> (<span class="params">module, exports, __webpack_require__</span>) </span>&#123;</span><br><span class="line">		 <span class="function"><span class="keyword">function</span> <span class="title">hello</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">		 __webpack_require__.e(<span class="comment">/* import() */</span> <span class="number">1</span>).then(__webpack_require__.bind(<span class="literal">null</span>, <span class="number">1</span>)).then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(res))</span><br><span class="line">		 &#125;</span><br><span class="line">		 hello()</span><br><span class="line">	 &#125;)</span><br><span class="line">]);</span><br></pre></td></tr></table></figure>
+<p>还是先从入口文件看起，当执行<code>hello</code>方法时，会执行以下逻辑：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__webpack_require__.e(<span class="comment">/* import() */</span> <span class="number">1</span>).then(__webpack_require__.bind(<span class="literal">null</span>, <span class="number">1</span>)).then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(res))</span><br></pre></td></tr></table></figure>
+<p>但我们发现，webpack打包出来的依赖数组中，就只有<code>hello</code>模块，并没有其他模块了，如果在<code>hello</code>中直接使用<code>__webpack_require__(1)</code>，那就会报错。但在<code>__webpack_require__.e(/* import() */ 1)</code>之后就能正常引用了。<code>__webpack_require__.e</code>这个方法到底做了什么呢？我们先来看看它的定义：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">  <span class="comment">// 用来存储已加载和加载中的chunk</span></span><br><span class="line">  <span class="comment">// undefined表示chunk未加载，null表示chunk preloaded/prefetched</span></span><br><span class="line">  <span class="comment">// Promise = chunk loading, 0 = chunk loaded</span></span><br><span class="line">  <span class="keyword">var</span> installedChunks = &#123;</span><br><span class="line">	<span class="number">0</span>: <span class="number">0</span> <span class="comment">// 表示模块0已加载</span></span><br><span class="line">  &#125;;</span><br><span class="line">__webpack_require__.e = <span class="function"><span class="keyword">function</span> <span class="title">requireEnsure</span>(<span class="params">chunkId</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> promises = [];</span><br><span class="line">  <span class="comment">// JSONP chunk loading for javascript</span></span><br><span class="line">  <span class="keyword">var</span> installedChunkData = installedChunks[chunkId]; <span class="comment">// 当前chunkId为1，值为undefined，表示未加载,</span></span><br><span class="line">  <span class="keyword">if</span> (installedChunkData !== <span class="number">0</span>) &#123; <span class="comment">// 0 表示chunk已经安装了</span></span><br><span class="line">    <span class="comment">// installedChunkData只有0, undefined, null ,promise4种类型的值。如果installedChunkData布尔值为true，表示installedChunkData为一个数组，chunk加载中</span></span><br><span class="line">    <span class="keyword">if</span> (installedChunkData) &#123; <span class="comment">// </span></span><br><span class="line">      promises.push(installedChunkData[<span class="number">2</span>]);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// setup Promise in chunk cache</span></span><br><span class="line">      <span class="keyword">var</span> promise = <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function"><span class="keyword">function</span> (<span class="params">resolve, reject</span>) </span>&#123;</span><br><span class="line">        installedChunkData = installedChunks[chunkId] = [resolve, reject];</span><br><span class="line">      &#125;);</span><br><span class="line">      promises.push(installedChunkData[<span class="number">2</span>] = promise); <span class="comment">// installedChunkData = [resolve, reject，promise]，例如installedChunkData保存新创建的promise以及他的resolve和reject</span></span><br><span class="line">      <span class="comment">// promises =&gt; [promise]</span></span><br><span class="line">      <span class="comment">// 开始加载chunk</span></span><br><span class="line">      <span class="keyword">var</span> script = <span class="built_in">document</span>.createElement(<span class="string">&#x27;script&#x27;</span>);</span><br><span class="line">      <span class="keyword">var</span> onScriptComplete;</span><br><span class="line">      script.charset = <span class="string">&#x27;utf-8&#x27;</span>;</span><br><span class="line">      script.timeout = <span class="number">120</span>;</span><br><span class="line">      <span class="keyword">if</span> (__webpack_require__.nc) &#123;</span><br><span class="line">        script.setAttribute(<span class="string">&quot;nonce&quot;</span>, __webpack_require__.nc);</span><br><span class="line">      &#125;</span><br><span class="line">      script.src = jsonpScriptSrc(chunkId);</span><br><span class="line">      <span class="comment">// create error before stack unwound to get useful stacktrace later</span></span><br><span class="line">      <span class="keyword">var</span> error = <span class="keyword">new</span> <span class="built_in">Error</span>();</span><br><span class="line">      onScriptComplete = <span class="function"><span class="keyword">function</span> (<span class="params">event</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// avoid mem leaks in IE.</span></span><br><span class="line">        script.onerror = script.onload = <span class="literal">null</span>;</span><br><span class="line">        <span class="built_in">clearTimeout</span>(timeout);</span><br><span class="line">        <span class="keyword">var</span> chunk = installedChunks[chunkId]; <span class="comment">// [resolve, reject，promise]</span></span><br><span class="line">        <span class="keyword">if</span> (chunk !== <span class="number">0</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span> (chunk) &#123; <span class="comment">// reject erro</span></span><br><span class="line">            <span class="keyword">var</span> errorType = event &amp;&amp; (event.type === <span class="string">&#x27;load&#x27;</span> ? <span class="string">&#x27;missing&#x27;</span> : event.type);</span><br><span class="line">            <span class="keyword">var</span> realSrc = event &amp;&amp; event.target &amp;&amp; event.target.src;</span><br><span class="line">            error.message = <span class="string">&#x27;Loading chunk &#x27;</span> + chunkId + <span class="string">&#x27; failed.\n(&#x27;</span> + errorType + <span class="string">&#x27;: &#x27;</span> + realSrc + <span class="string">&#x27;)&#x27;</span>;</span><br><span class="line">            error.name = <span class="string">&#x27;ChunkLoadError&#x27;</span>;</span><br><span class="line">            error.type = errorType;</span><br><span class="line">            error.request = realSrc;</span><br><span class="line">            chunk[<span class="number">1</span>](error);</span><br><span class="line">          &#125;</span><br><span class="line">          installedChunks[chunkId] = <span class="literal">undefined</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;;</span><br><span class="line">      <span class="keyword">var</span> timeout = <span class="built_in">setTimeout</span>(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">        onScriptComplete(&#123; <span class="attr">type</span>: <span class="string">&#x27;timeout&#x27;</span>, <span class="attr">target</span>: script &#125;);</span><br><span class="line">      &#125;, <span class="number">120000</span>);</span><br><span class="line">      script.onerror = script.onload = onScriptComplete; <span class="comment">// load事件会在script加载并执行完才触发</span></span><br><span class="line">      <span class="built_in">document</span>.head.appendChild(script);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="built_in">Promise</span>.all(promises);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>__webpack_require__.e</code>的作用是判断模块是否已加载（或加载中），如果都不是，就利用<code>jsonp</code>加载模块。该方法会返回一个<code>promise</code>，当<code>script</code>加载并执行成功时会<code>resolve</code>，当加载失败时<code>reject</code>。这里需要注意的是，**<code>script</code>的<code>load</code>事件会在脚本下载并执行完之后触发**。</p>
+<p>通过<code>jsonp</code>加载的<code>1.bundle.js</code>的实现如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(<span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] = <span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] || []).push([[<span class="number">1</span>], [<span class="comment">/* 0 */</span>,  <span class="comment">/* 1 */</span></span><br><span class="line">  (<span class="function"><span class="keyword">function</span> (<span class="params">module, __webpack_exports__, __webpack_require__</span>) </span>&#123;</span><br><span class="line"><span class="meta">    &quot;use strict&quot;</span>;</span><br><span class="line">    __webpack_require__.r(__webpack_exports__);</span><br><span class="line"><span class="comment">/* harmony default export */</span> __webpack_exports__[<span class="string">&quot;default&quot;</span>] = (<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&#x27;dynamic&#x27;</span></span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;)</span><br><span class="line">]]);</span><br></pre></td></tr></table></figure>
+<p>不难发现，<code>js</code>加载完成后，调用了<code> window[&quot;webpackJsonp&quot;]</code>的<code>push</code>方法。当这个<code>push</code>方法可不是数组原生当<code>push</code>方法，初始化时<code>webpack</code>做了一个小动作，关键代码如下：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> jsonpArray = <span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] = <span class="built_in">window</span>[<span class="string">&quot;webpackJsonp&quot;</span>] || [];</span><br><span class="line"><span class="keyword">var</span> oldJsonpFunction = jsonpArray.push.bind(jsonpArray); <span class="comment">// oldJsonpFunction -&gt; push，代理jsonpArray的push方法</span></span><br><span class="line">jsonpArray.push = webpackJsonpCallback; </span><br></pre></td></tr></table></figure>
+<p>所以在执行push方法时，实际上是执行webpackJsonpCallback。我们来看一下这个函数的定义：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">webpackJsonpCallback</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">var</span> chunkIds = data[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">var</span> moreModules = data[<span class="number">1</span>];</span><br><span class="line">  <span class="comment">// 把新加载的模块加到modules数组中</span></span><br><span class="line">  <span class="comment">// 把模块标记为已加载，然后resolve</span></span><br><span class="line">  <span class="keyword">var</span> moduleId, chunkId, i = <span class="number">0</span>, resolves = [];</span><br><span class="line">  <span class="keyword">for</span> (; i &lt; chunkIds.length; i++) &#123;</span><br><span class="line">    chunkId = chunkIds[i];</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">Object</span>.prototype.hasOwnProperty.call(installedChunks, chunkId) &amp;&amp; installedChunks[chunkId]) &#123;</span><br><span class="line">      resolves.push(installedChunks[chunkId][<span class="number">0</span>]); <span class="comment">// 把chunk的resolve方法放到resolves数组中，后面统一resolve</span></span><br><span class="line">    &#125;</span><br><span class="line">    installedChunks[chunkId] = <span class="number">0</span>; <span class="comment">// 把模块标记为已加载</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">for</span> (moduleId <span class="keyword">in</span> moreModules) &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">Object</span>.prototype.hasOwnProperty.call(moreModules, moduleId)) &#123;</span><br><span class="line">      modules[moduleId] = moreModules[moduleId]; <span class="comment">// 把新加载回来的模块添加到之前的模块数组中</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (parentJsonpFunction) parentJsonpFunction(data); <span class="comment">// 把模块数据放到window[&quot;webpackJsonp&quot;] 数组中</span></span><br><span class="line">  <span class="keyword">while</span> (resolves.length) &#123;</span><br><span class="line">    resolves.shift()(); <span class="comment">// resolve the promise</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这个函数其实就做了几件事：</p>
+<ul>
+<li>把模块标记为已加载，并追加到modules数组中</li>
+<li>把模块数据放到window[“webpackJsonp”] 数组中</li>
+<li>调用之前那些promise的resolve</li>
+</ul>
+<p>因此，当<code>__webpack_require__.e(/* import() */ 1).then</code>时，就能通过<code>__webpack_require__</code>拿到动态获取的模块了。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__webpack_require__.e(<span class="comment">/* import() */</span> <span class="number">1</span>).then(__webpack_require__.bind(<span class="literal">null</span>, <span class="number">1</span>)).then(<span class="function"><span class="params">res</span> =&gt;</span> <span class="built_in">console</span>.log(res))</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/03/11/%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E8%87%AA%E5%8A%A8%E4%B8%8A%E4%BC%A0%E8%B5%84%E6%BA%90%E5%88%B0CDN%E7%9A%84webpack%E6%8F%92%E4%BB%B6/" rel="prev" title="实现一个自动上传资源到CDN的Webpack插件">
+                  <i class="fa fa-chevron-left"></i> 实现一个自动上传资源到CDN的Webpack插件
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder"></span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+</body>
+</html>
